@@ -5,93 +5,90 @@ from lumibot.traders import Trader
 from datetime import datetime
 from alpaca_trade_api import REST
 from timedelta import Timedelta
-from finbert_utils import estimate_sentiment
+from finbert_utils import predict_sentiment
+from dotenv import load_dotenv
+import os
 
-API_KEY = "PK61QKCII0UBDTNGLBCY"
-API_SECRET = "JiimzjIkcXYjOmvNAcKwA4dqfqOskdrdFSvLBZaV"
-BASE_URL = "https://paper-api.alpaca.markets"
+load_dotenv()
+
+API_KEY = os.getenv('API_KEY')
+API_SECRET = os.getenv('API_SECRET')
+BASE_URL = os.getenv('BASE_URL')
 
 ALPACA_CREDS = {
-    "API_KEY": API_KEY,
-    "API_SECRET": API_SECRET,
-    "PAPER": True
+    'API_KEY': API_KEY,
+    'API_SECRET': API_SECRET,
+    'PAPER': True
 }
 
 
-class MLTrader(Strategy):
-    def initialize(self, symbol: str = "SPY", cash_at_risk: float = .5):
-        self.symbol = symbol
-        self.sleeptime = "24H"
-        self.last_trade = None
-        self.cash_at_risk = cash_at_risk
+class SentimentTrader(Strategy):
+    def initialize(self, symbol: str = 'SPY'):
+        self.asset = symbol
+        self.sleeptime = '24H'
         self.api = REST(base_url=BASE_URL, key_id=API_KEY,
                         secret_key=API_SECRET)
+        self.recent_sentiments = ['neutral',
+                                  'neutral', 'neutral', 'neutral', 'neutral']
 
     def position_sizing(self):
-        cash = self.get_cash()
-        last_price = self.get_last_price(self.symbol)
-        quantity = round(cash * self.cash_at_risk / last_price, 0)
-        return cash, last_price, quantity
-
-    def get_dates(self):
-        today = self.get_datetime()
-        three_days_prior = today - Timedelta(days=3)
-        return today.strftime('%Y-%m-%d'), three_days_prior.strftime('%Y-%m-%d')
+        value = self.get_cash() * 0.25
+        return int(value / self.get_last_price(self.asset))
 
     def get_sentiment(self):
-        today, three_days_prior = self.get_dates()
-        news = self.api.get_news(symbol=self.symbol,
-                                 start=three_days_prior,
-                                 end=today)
-        news = [ev.__dict__["_raw"]["headline"] for ev in news]
-        probability, sentiment = estimate_sentiment(news)
-        return probability, sentiment
+        news_list = self.api.get_news(
+            symbol=self.asset,
+            start=(self.get_datetime() - Timedelta(days=1)).strftime('%Y-%m-%d'),
+            end=self.get_datetime().strftime('%Y-%m-%d')
+        )
+        headlines = [news.headline for news in news_list]
+        summaries = [news.summary for news in news_list]
+        results = headlines + summaries
+        results = [result for result in results if 'Market Clubhouse Morning Memo' not in result and any(
+            keyword in result for keyword in {'Microsoft', 'MSFT', 'Bill', 'Gates', 'Satya', 'Nadella'})]
+        print(results)
+
+        return predict_sentiment(results)
 
     def on_trading_iteration(self):
-        cash, last_price, quantity = self.position_sizing()
-        probability, sentiment = self.get_sentiment()
+        sentiment = self.get_sentiment()
+        self.recent_sentiments.append(sentiment)
+        self.recent_sentiments.pop(0)
+        print(f"\n{self.get_datetime().strftime('%Y-%m-%d')}: {sentiment}")
 
-        if cash > last_price:
-            if sentiment == "positive" and probability > .999:
-                if self.last_trade == "sell":
-                    self.sell_all()
+        if self.recent_sentiments.count('positive') >= 2:
+            if self.get_position(self.asset) is None:
+                quantity = self.position_sizing()
                 order = self.create_order(
-                    self.symbol,
+                    self.asset,
                     quantity,
-                    "buy",
-                    type="bracket",
-                    take_profit_price=last_price*1.20,
-                    stop_loss_price=last_price*.95
+                    'buy',
+                )
+                stop_order = self.create_order(
+                    self.asset,
+                    quantity,
+                    'sell',
+                    type='trailing_stop',
+                    trail_percent=0.03
                 )
                 self.submit_order(order)
-                self.last_trade = "buy"
-            elif sentiment == "negative" and probability > .999:
-                if self.last_trade == "buy":
-                    self.sell_all()
-                order = self.create_order(
-                    self.symbol,
-                    quantity,
-                    "sell",
-                    type="bracket",
-                    take_profit_price=last_price*.8,
-                    stop_loss_price=last_price*1.05
-                )
-                self.submit_order(order)
-                self.last_trade = "sell"
+                self.submit_order(stop_order)
+        elif self.recent_sentiments.count('negative') >= 2:
+            if self.get_position(self.asset):
+                self.cancel_open_orders()
+                self.sell_all()
+                # consider short selling...
 
 
-start_date = datetime(2020, 1, 1)
-end_date = datetime(2023, 12, 31)
-broker = Alpaca(ALPACA_CREDS)
-strategy = MLTrader(name='mlstrat', broker=broker,
-                    parameters={"symbol": "SPY",
-                                "cash_at_risk": .5})
-strategy.backtest(
-    YahooDataBacktesting,
-    start_date,
-    end_date,
-    parameters={"symbol": "SPY", "cash_at_risk": .5}
-)
-# trader = Trader()
-# trader.add_strategy(strategy)
-# trader.run_all()
+if __name__ == '__main__':
+    broker = Alpaca(ALPACA_CREDS)
+    strategy = SentimentTrader(
+        name='sentiment_strat', broker=broker, parameters={'symbol': 'MSFT'})
+
+    strategy.backtest(
+        YahooDataBacktesting,
+        datetime(2020, 1, 1),
+        datetime(2025, 1, 31),
+        parameters={'symbol': 'MSFT'},
+        benchmark_asset='MSFT'
+    )

@@ -1,45 +1,55 @@
-## 🚀 Automated Sentiment-Driven Stock Trading Bot Using Alpaca API and Lumibot
+# FinBERT Sentiment-Based Alpaca Trading Bot
 
-Welcome to my latest project! This repository features a sentiment-driven trading strategy powered by Alpaca's API, FinBERT sentiment analysis, and Lumibot's powerful trading framework. 🧠💰
+This project implements a sentiment-based trading bot using the Alpaca API for trading and the FinBERT model for sentiment analysis. The bot trades based on the sentiment of recent news headlines related to a specified stock symbol.
 
-## 🔍 About This Project
+## Table of Contents
 
-# This bot:
+- **[Features](#features)**
+- **[Installation](#installation)**
+- **[Usage](#usage)**
+- **[Files](#files)**
 
-1️⃣ Analyzes news sentiment for selected stocks (default: SPY - S&P 500 ETF).
+## Features
 
-2️⃣ Makes buy/sell decisions based on confidence levels and sentiment positivity/negativity.
+- **Alpaca Integration:** Uses the Alpaca API to place buy/sell orders and manage positions.
+- **Sentiment Analysis:** Leverages the FinBERT model (a pre-trained BERT model) to predict the sentiment of financial news headlines.
+- **Backtesting:** Includes the ability to backtest the strategy with historical data using Yahoo Finance.
+- **Risk Management:** Implements stop-loss and take-profit mechanisms for automated trade execution.
 
-3️⃣ Implements dynamic position sizing for risk management.
+## Installation
 
-4️⃣ Utilizes backtesting with Yahoo Finance data to validate performance.
+1. Clone the repository:
 
-# 💡 Key Features
+```bash
+git https://github.com/alphatechlogics/FinBERT_ML_TradingBot.git
+cd FinBERT_ML_TradingBot
+```
 
-✅ Sentiment Analysis: News headlines are analyzed using FinBERT for accurate market sentiment estimation.
+2. Install the required packages:
 
-✅ Alpaca API Integration: Connects seamlessly for both paper trading and live trading.
+```bash
+pip install -r requirements.txt
+```
 
-✅ Position Sizing: Determines the optimal number of shares to trade based on cash balance and risk tolerance.
+3. Set up environment variables: Create a .env file in the root directory and add your Alpaca API credentials:
 
-✅ Bracket Orders: Protects trades with automatic profit targets and stop-loss levels.
+```
+API_KEY=your_alpaca_api_key
+API_SECRET=your_alpaca_api_secret
+BASE_URL=https://paper-api.alpaca.markets
+```
 
-✅ Backtesting: Ensures strategy robustness with historical data before going live.
+## Usage
 
-# 📂 Project Contents
+1. Run the trading bot:
 
-AI Trading Bot.py: Core strategy implementation.
+```bash
+python tradingbot.py
+```
 
-README.md: Comprehensive guide to setup and usage.
+2. Backtest the strategy: The backtesting is already included in the tradingbot.py script. It uses Yahoo Finance data to backtest the strategy from January 1, 2020, to January 1, 2025.
 
-Requirements: Lumibot, Alpaca API, FinBERT Utilities.
+## Files
 
-# 🛠 How to Run
-
-Clone the repository.
-
-Install required dependencies.
-
-Add your Alpaca API credentials.
-
-Backtest the strategy or deploy it for live trading!
+- **tradingbot.py**: Contains the main trading bot implementation.
+- **finbert_utils.py**: Contains the sentiment analysis function using the FinBERT model.
