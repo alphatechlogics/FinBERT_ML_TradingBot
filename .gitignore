@@ -34,7 +34,6 @@ ENV/
 
 # Project specific
 *.log
-logs/
 data/
 models/
 *.pkl
