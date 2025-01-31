@@ -3,6 +3,7 @@
 Welcome to my latest project! This repository features a sentiment-driven trading strategy powered by Alpaca's API, FinBERT sentiment analysis, and Lumibot's powerful trading framework. 🧠💰
 
 ## 🔍 About This Project
+
 # This bot:
 
 1️⃣ Analyzes news sentiment for selected stocks (default: SPY - S&P 500 ETF).
@@ -42,12 +43,3 @@ Install required dependencies.
 Add your Alpaca API credentials.
 
 Backtest the strategy or deploy it for live trading!
-
-# 🎯 Future Enhancements
-
-🔄 Incorporate multi-asset sentiment analysis.
-
-📈 Enhance machine learning models for better decision-making.
-
-⚙️ Integrate advanced risk management frameworks.
-
